@@ -310,3 +310,4 @@ func sendFileToDiscord(filePath, fileName string) error {
 
     return nil
 }
+
