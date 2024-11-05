@@ -235,7 +235,7 @@ func sendFileToDiscord(filePath, fileName string) error {
 
     client := &http.Client{}
     resp, err := client.Do(req)
-    if err != nil {
+    if err != nil { 
         return fmt.Errorf("erreur d'envoi de la requête : %w", err)
     }
     defer resp.Body.Close()

